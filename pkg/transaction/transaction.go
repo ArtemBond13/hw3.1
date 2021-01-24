@@ -105,23 +105,24 @@ func (s *Service) Export(writer io.Writer) error {
 //
 //}
 
-
 func (s *Service) Import(r io.Reader) error {
-	file, err := os.Open("export.scv")
-	if err != nil{
-		log.Println(err)
-	}
+	//// Открыть файл
+	//file, err := os.Open("import.scv")
+	//if err != nil {
+	//	log.Println(err)
+	//}
+	//
+	//defer func(c io.Closer) {
+	//	if cerr := c.Close(); cerr != nil {
+	//		log.Println(err)
+	//		if err == nil {
+	//			err = cerr
+	//		}
+	//	}
+	//}(file)
 
-	defer func(c io.Closer) {
-		if cerr := c.Close(); cerr != nil{
-			log.Println(err)
-			if err == nil {
-				err = cerr
-			}
-		}
-	}(file)
-
-	reader := csv.NewReader(file)
+	// Сначало надо прочитать файл
+	reader := csv.NewReader(r)
 	records := make([][]string, 0)
 	for {
 		record, err := reader.Read()
@@ -134,5 +135,34 @@ func (s *Service) Import(r io.Reader) error {
 		}
 		records = append(records, record)
 	}
+
+	for _, row := range records {
+		transaction, err := s.MapRowToTransaction(row)
+		if err != nil {
+			log.Println(err)
+		}
+		s.Register(transaction.From, transaction.To, transaction.Amount)
+
+	}
 	return nil
+}
+
+func (s *Service) MapRowToTransaction(rows []string) (Transaction, error) {
+	amount, err := strconv.ParseInt(rows[4], 10, 64)
+	if err != nil {
+		log.Println(err)
+		return Transaction{}, err
+	}
+	created, err := strconv.ParseInt(rows[5], 10, 64)
+	if err != nil {
+		log.Println(err)
+		return Transaction{}, err
+	}
+	return Transaction{
+		Id:      rows[1],
+		From:    rows[2],
+		To:      rows[3],
+		Amount:  amount,
+		Created: time.Unix(created, 0),
+	}, nil
 }
