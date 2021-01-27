@@ -112,7 +112,7 @@ func (s *Service) MapRowToTransaction(rows []string) (Transaction, error) {
 		rows[2],
 		rows[3],
 		amount,
-		time.Unix(created, 0),
+		created,
 	}, nil
 }
 
