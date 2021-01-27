@@ -36,5 +36,4 @@ func execute(filename string) error {
 		log.Println(err)
 	}
 	return err
-
 }
