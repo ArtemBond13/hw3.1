@@ -9,7 +9,7 @@ import (
 
 func main() {
 
-	if err := execute("import.scv"); err != nil {
+	if err := execute("import.json"); err != nil {
 		os.Exit(1)
 	}
 }
@@ -33,7 +33,7 @@ func execute(filename string) error {
 
 	scv := transaction.NewService()
 
-	if err = scv.Import2(file); err != nil {
+	if err = scv.ImportJSON(file); err != nil {
 		log.Println(err)
 	}
 

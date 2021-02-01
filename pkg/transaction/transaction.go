@@ -4,6 +4,7 @@ import (
 	"compress/gzip"
 	"encoding/csv"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -96,36 +97,8 @@ func (s *Service) ExportJSON(filename string) error {
 
 	return nil
 }
-// Import если не большие файлы
-func (s *Service) Import(r io.Reader) error {
-	// Сначало надо прочитать файл
-	reader := csv.NewReader(r)
-	records := make([][]string, 0)
-	for {
-		record, err := reader.Read()
-		if err != nil {
-			if err != io.EOF {
-				log.Println(err)
-			}
-			records = append(records, record)
-			break
-		}
-		records = append(records, record)
-	}
 
-	for _, row := range records {
-		transaction, err := s.MapRowToTransaction(row)
-		if err != nil {
-			log.Println(err)
-		}
-		if _, _ = s.Register(transaction.From, transaction.To, transaction.Amount); err != nil {
-			log.Println(err)
-		}
-	}
-	return nil
-}
-
-func (s * Service) Import2(r io.Reader) error {
+func (s * Service) Import(r io.Reader) error {
 	reader := csv.NewReader(r)
 	records, err := reader.ReadAll()
 	if err != nil {
@@ -144,22 +117,25 @@ func (s * Service) Import2(r io.Reader) error {
 	return nil
 }
 
-func (s * Service) ImportJSON(r io.Reader) error {
-	reader := csv.NewReader(r)
-	records, err := reader.ReadAll()
+func (s * Service) ImportJSON(filename io.Reader) error {
+	file, err := ioutil.ReadAll(filename)
 	if err != nil {
+		fmt.Printf("Cannot read file %s\n", filename)
 		log.Println(err)
-	}
-	//decodeJSON := json.NewDecoder(r)
-	for _,row:=range records{
-		transaction, err := s.MapRowToTransaction(row)
-		if err != nil{
-			return  err
-		}
-		s.AddTrancsation(transaction.Id, transaction.From, transaction.To, transaction.Amount, transaction.Created)
-	}
-	if err != nil{
 		return err
+	}
+	var decoded []Transaction
+
+	// Важно: передаём указатель, чтобы функция смогла записать данные
+	if err = json.Unmarshal(file, &decoded); err != nil {
+		fmt.Printf("Cannot unmarshaling file %s\n", filename)
+		log.Println(err)
+		return err
+	}
+	log.Printf("%#v\n", decoded)
+
+	for _, transaction := range decoded{
+		s.AddTrancsation(transaction.Id, transaction.From, transaction.To, transaction.Amount, transaction.Created)
 	}
 	return nil
 }
@@ -175,7 +151,7 @@ func (s *Service) MapRowToTransaction(rows []string) (Transaction, error) {
 		log.Println(err)
 		return Transaction{}, err
 	}
-	// createdUnix := time.Unix(created, 0)
+
 	return Transaction{
 		rows[0],
 		rows[1],
