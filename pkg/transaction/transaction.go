@@ -44,6 +44,15 @@ func (s *Service) Register(from, to string, amount int64) (string, error) {
 	return t.Id, nil
 }
 
+// AddTrancsation добавляет транзакцию в историю
+func (s *Service) AddTrancsation(id, from, to string, amount, created int64) {
+	s.mu.Lock()
+	trans := &Transaction{id, from, to,amount, created}
+	s.transactions = append(s.transactions, trans)
+	s.mu.Unlock()
+
+}
+
 func (s *Service) Export(writer io.Writer) error {
 	s.mu.Lock()
 	if len(s.transactions) == 0 {
@@ -66,7 +75,7 @@ func (s *Service) Export(writer io.Writer) error {
 	w := csv.NewWriter(writer)
 	return w.WriteAll(records) // не используем defer,потому что тогда lock будет висеть доокончания записи
 }
-
+// Import если не большие файлы
 func (s *Service) Import(r io.Reader) error {
 	// Сначало надо прочитать файл
 	reader := csv.NewReader(r)
@@ -95,22 +104,41 @@ func (s *Service) Import(r io.Reader) error {
 	return nil
 }
 
+func (s * Service) Import2(r io.Reader) error {
+	reader := csv.NewReader(r)
+	records, err := reader.ReadAll()
+	if err != nil {
+		log.Println(err)
+	}
+	for _,row:=range records{
+		transaction, err := s.MapRowToTransaction(row)
+		if err != nil{
+			return  err
+		}
+		s.AddTrancsation(transaction.Id, transaction.From, transaction.To, transaction.Amount, transaction.Created)
+	}
+	if err != nil{
+		return err
+	}
+	return nil
+}
+
 func (s *Service) MapRowToTransaction(rows []string) (Transaction, error) {
-	amount, err := strconv.ParseInt(rows[4], 10, 64)
+	amount, err := strconv.ParseInt(rows[3], 10, 64)
 	if err != nil {
 		log.Println(err)
 		return Transaction{}, err
 	}
-	created, err := strconv.ParseInt(rows[5], 10, 64)
+	created, err := strconv.ParseInt(rows[4], 10, 64)
 	if err != nil {
 		log.Println(err)
 		return Transaction{}, err
 	}
 	// createdUnix := time.Unix(created, 0)
 	return Transaction{
+		rows[0],
 		rows[1],
 		rows[2],
-		rows[3],
 		amount,
 		created,
 	}, nil
