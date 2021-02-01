@@ -3,7 +3,9 @@ package transaction
 import (
 	"compress/gzip"
 	"encoding/csv"
+	"encoding/json"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"strconv"
@@ -12,11 +14,11 @@ import (
 )
 
 type Transaction struct {
-	Id      string
-	From    string
-	To      string
-	Amount  int64
-	Created int64
+	Id      string `json:"id"`
+	From    string `json:"from"`
+	To      string `json:"to"`
+	Amount  int64 `json:"amount"`
+	Created int64 `json:"created"`
 }
 
 type Service struct {
@@ -47,7 +49,7 @@ func (s *Service) Register(from, to string, amount int64) (string, error) {
 // AddTrancsation добавляет транзакцию в историю
 func (s *Service) AddTrancsation(id, from, to string, amount, created int64) {
 	s.mu.Lock()
-	trans := &Transaction{id, from, to, amount, created}
+	trans := &Transaction{id, from, to,amount, created}
 	s.transactions = append(s.transactions, trans)
 	s.mu.Unlock()
 
@@ -76,6 +78,24 @@ func (s *Service) Export(writer io.Writer) error {
 	return w.WriteAll(records) // не используем defer,потому что тогда lock будет висеть доокончания записи
 }
 
+func (s *Service) ExportJSON(filename string) error {
+	s.mu.Lock()
+	if len(s.transactions) == 0 {
+		s.mu.Unlock()
+		return nil
+	}
+
+	encoded, err := json.Marshal(s.transactions)
+	if err != nil {
+		log.Println(err)
+	}
+	s.mu.Unlock()
+	if err = ioutil.WriteFile(filename, encoded, 0666); err != nil {
+		log.Println(err)
+	}
+
+	return nil
+}
 // Import если не большие файлы
 func (s *Service) Import(r io.Reader) error {
 	// Сначало надо прочитать файл
@@ -105,20 +125,40 @@ func (s *Service) Import(r io.Reader) error {
 	return nil
 }
 
-func (s *Service) Import2(r io.Reader) error {
+func (s * Service) Import2(r io.Reader) error {
 	reader := csv.NewReader(r)
 	records, err := reader.ReadAll()
 	if err != nil {
 		log.Println(err)
 	}
-	for _, row := range records {
+	for _,row:=range records{
 		transaction, err := s.MapRowToTransaction(row)
-		if err != nil {
-			return err
+		if err != nil{
+			return  err
 		}
 		s.AddTrancsation(transaction.Id, transaction.From, transaction.To, transaction.Amount, transaction.Created)
 	}
+	if err != nil{
+		return err
+	}
+	return nil
+}
+
+func (s * Service) ImportJSON(r io.Reader) error {
+	reader := csv.NewReader(r)
+	records, err := reader.ReadAll()
 	if err != nil {
+		log.Println(err)
+	}
+	//decodeJSON := json.NewDecoder(r)
+	for _,row:=range records{
+		transaction, err := s.MapRowToTransaction(row)
+		if err != nil{
+			return  err
+		}
+		s.AddTrancsation(transaction.Id, transaction.From, transaction.To, transaction.Amount, transaction.Created)
+	}
+	if err != nil{
 		return err
 	}
 	return nil
