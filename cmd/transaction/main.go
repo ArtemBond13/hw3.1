@@ -1,7 +1,7 @@
 package main
 
 import (
-	"encoding/json"
+	"encoding/xml"
 	transaction2 "github.com/ArtemBond13/hw3.1/pkg/transaction"
 	"log"
 	"time"
@@ -17,8 +17,8 @@ func main() {
 			Created: time.Now().Unix(),
 		},
 	}
-
-	encoded, err := json.Marshal(transaction)
+	// json.Marshal() возвращает срез байт []byte
+	encoded, err := xml.Marshal(transaction)
 	if err != nil {
 		log.Println(err)
 	}
@@ -26,8 +26,8 @@ func main() {
 	var decoded []transaction2.Transaction
 
 	// Важно: передаём указатель, чтобы функция смогла записать данные
-	err = json.Unmarshal(encoded, &decoded)
-	log.Printf("%#v\n", decoded)
+	err = xml.Unmarshal(encoded, &decoded)
+	log.Printf("%v\n", decoded)
 
 
 }
