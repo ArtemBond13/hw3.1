@@ -47,7 +47,7 @@ func (s *Service) Register(from, to string, amount int64) (string, error) {
 // AddTrancsation добавляет транзакцию в историю
 func (s *Service) AddTrancsation(id, from, to string, amount, created int64) {
 	s.mu.Lock()
-	trans := &Transaction{id, from, to,amount, created}
+	trans := &Transaction{id, from, to, amount, created}
 	s.transactions = append(s.transactions, trans)
 	s.mu.Unlock()
 
@@ -75,6 +75,7 @@ func (s *Service) Export(writer io.Writer) error {
 	w := csv.NewWriter(writer)
 	return w.WriteAll(records) // не используем defer,потому что тогда lock будет висеть доокончания записи
 }
+
 // Import если не большие файлы
 func (s *Service) Import(r io.Reader) error {
 	// Сначало надо прочитать файл
@@ -104,20 +105,20 @@ func (s *Service) Import(r io.Reader) error {
 	return nil
 }
 
-func (s * Service) Import2(r io.Reader) error {
+func (s *Service) Import2(r io.Reader) error {
 	reader := csv.NewReader(r)
 	records, err := reader.ReadAll()
 	if err != nil {
 		log.Println(err)
 	}
-	for _,row:=range records{
+	for _, row := range records {
 		transaction, err := s.MapRowToTransaction(row)
-		if err != nil{
-			return  err
+		if err != nil {
+			return err
 		}
 		s.AddTrancsation(transaction.Id, transaction.From, transaction.To, transaction.Amount, transaction.Created)
 	}
-	if err != nil{
+	if err != nil {
 		return err
 	}
 	return nil
@@ -161,40 +162,3 @@ func Compress(filename string) error {
 	gzout.Close()
 	return err
 }
-
-//func (s *Service) Import(reader io.Reader) error {
-//	file, err := os.Open("export.scv")
-//	if err != nil{
-//		log.Println(err)
-//	}
-//
-//	defer func(c io.Closer) {
-//		if cerr := c.Close(); cerr != nil{
-//			log.Println(err)
-//			if err == nil {
-//				err = cerr
-//			}
-//		}
-//	}(file)
-//
-//	// Срез для хранения содержимот
-//	content := make([]byte, 0)
-//
-//	// буфер для чтения
-//	buf := make([]byte, 4096) // 4096 - количство байт
-//
-//	for {
-//		n, err := file.Read(buf)
-//		if err != nil {
-//			// io.EOF - ошибка, сигнализирующая о том, что дочитали данные до конца (файл закончился)
-//			if err != io.EOF {
-//				log.Println(err)
-//			}
-//			// "перекладываем" данные из буфера в слайс со всем содержимым
-//			content = append(content, buf[:n]...)
-//			break
-//		}
-//		content = append(content, buf[:n]...)
-//	}
-//	return nil
-//}
