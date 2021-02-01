@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	if err := execute("export.json"); err != nil {
+	if err := execute("export.xml"); err != nil {
 		os.Exit(1)
 	}
 
@@ -39,7 +39,7 @@ func execute(filename string) error {
 		log.Println(err)
 	}
 
-	if err = scv.ExportJSON("export.json"); err != nil {
+	if err = scv.ExportXML("export.xml"); err != nil {
 		log.Println(err)
 	}
 	return err

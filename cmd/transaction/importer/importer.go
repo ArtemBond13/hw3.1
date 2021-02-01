@@ -9,7 +9,7 @@ import (
 
 func main() {
 
-	if err := execute("import.json"); err != nil {
+	if err := execute("import.xml"); err != nil {
 		os.Exit(1)
 	}
 }

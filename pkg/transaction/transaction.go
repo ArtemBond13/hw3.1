@@ -4,6 +4,7 @@ import (
 	"compress/gzip"
 	"encoding/csv"
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -15,11 +16,12 @@ import (
 )
 
 type Transaction struct {
-	Id      string `json:"id"`
-	From    string `json:"from"`
-	To      string `json:"to"`
-	Amount  int64 `json:"amount"`
-	Created int64 `json:"created"`
+	XMLName string `xml:"transaction"`
+	Id      string `json:"id" xml:"id"`
+	From    string `json:"from" xml:"from"`
+	To      string `json:"to" xml:"to"`
+	Amount  int64 `json:"amount" xml:"amount"`
+	Created int64 `json:"created" xml:"created"`
 }
 
 type Service struct {
@@ -48,9 +50,9 @@ func (s *Service) Register(from, to string, amount int64) (string, error) {
 }
 
 // AddTrancsation добавляет транзакцию в историю
-func (s *Service) AddTrancsation(id, from, to string, amount, created int64) {
+func (s *Service) AddTrancsation(xmlName, id, from, to string, amount, created int64) {
 	s.mu.Lock()
-	trans := &Transaction{id, from, to,amount, created}
+	trans := &Transaction{xmlName,id, from, to,amount, created}
 	s.transactions = append(s.transactions, trans)
 	s.mu.Unlock()
 
@@ -98,6 +100,26 @@ func (s *Service) ExportJSON(filename string) error {
 	return nil
 }
 
+func (s *Service) ExportXML(filename string) error {
+	s.mu.Lock()
+	if len(s.transactions) == 0 {
+		s.mu.Unlock()
+		return nil
+	}
+
+	encoded, err := json.Marshal(s.transactions)
+	if err != nil {
+		log.Println(err)
+	}
+	encoded = append([]byte(xml.Header), encoded...)
+	s.mu.Unlock()
+	if err = ioutil.WriteFile(filename, encoded, 0666); err != nil {
+		log.Println(err)
+	}
+
+	return nil
+}
+
 func (s * Service) Import(r io.Reader) error {
 	reader := csv.NewReader(r)
 	records, err := reader.ReadAll()
@@ -109,7 +131,7 @@ func (s * Service) Import(r io.Reader) error {
 		if err != nil{
 			return  err
 		}
-		s.AddTrancsation(transaction.Id, transaction.From, transaction.To, transaction.Amount, transaction.Created)
+		s.AddTrancsation(transaction.XMLName, transaction.Id, transaction.From, transaction.To, transaction.Amount, transaction.Created)
 	}
 	if err != nil{
 		return err
@@ -135,18 +157,41 @@ func (s * Service) ImportJSON(filename io.Reader) error {
 	log.Printf("%#v\n", decoded)
 
 	for _, transaction := range decoded{
-		s.AddTrancsation(transaction.Id, transaction.From, transaction.To, transaction.Amount, transaction.Created)
+		s.AddTrancsation(transaction.XMLName, transaction.Id, transaction.From, transaction.To, transaction.Amount, transaction.Created)
+	}
+	return nil
+}
+
+func (s * Service) ImportXML(filename io.Reader) error {
+	file, err := ioutil.ReadAll(filename)
+	if err != nil {
+		fmt.Printf("Cannot read file %s\n", filename)
+		log.Println(err)
+		return err
+	}
+	var decoded []Transaction
+
+	// Важно: передаём указатель, чтобы функция смогла записать данные
+	if err = xml.Unmarshal(file, &decoded); err != nil {
+		fmt.Printf("Cannot unmarshaling file %s\n", filename)
+		log.Println(err)
+		return err
+	}
+	log.Printf("%#v\n", decoded)
+
+	for _, transaction := range decoded{
+		s.AddTrancsation(transaction.XMLName, transaction.Id, transaction.From, transaction.To, transaction.Amount, transaction.Created)
 	}
 	return nil
 }
 
 func (s *Service) MapRowToTransaction(rows []string) (Transaction, error) {
-	amount, err := strconv.ParseInt(rows[3], 10, 64)
+	amount, err := strconv.ParseInt(rows[4], 10, 64)
 	if err != nil {
 		log.Println(err)
 		return Transaction{}, err
 	}
-	created, err := strconv.ParseInt(rows[4], 10, 64)
+	created, err := strconv.ParseInt(rows[5], 10, 64)
 	if err != nil {
 		log.Println(err)
 		return Transaction{}, err
@@ -156,6 +201,7 @@ func (s *Service) MapRowToTransaction(rows []string) (Transaction, error) {
 		rows[0],
 		rows[1],
 		rows[2],
+		rows[3],
 		amount,
 		created,
 	}, nil

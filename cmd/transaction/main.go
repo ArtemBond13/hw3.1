@@ -16,15 +16,24 @@ func main() {
 			Amount: 1000_00,
 			Created: time.Now().Unix(),
 		},
+		{
+			Id:      "2",
+			From:    "0001",
+			To:      "0002",
+			Amount:  200_00,
+			Created: time.Now().Unix(),
+		},
 	}
 	// json.Marshal() возвращает срез байт []byte
 	encoded, err := xml.Marshal(transaction)
 	if err != nil {
 		log.Println(err)
 	}
+	// добавил общий заголовок XML
+	encoded = append([]byte(xml.Header), encoded...)
 	log.Println(string(encoded))
-	var decoded []transaction2.Transaction
 
+	var decoded []transaction2.Transaction
 	// Важно: передаём указатель, чтобы функция смогла записать данные
 	err = xml.Unmarshal(encoded, &decoded)
 	log.Printf("%v\n", decoded)
