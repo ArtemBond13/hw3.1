@@ -71,7 +71,7 @@ func (s *Service) Export(writer io.Writer) error {
 			transaction.Id,
 			transaction.From,
 			transaction.To,
-			strconv.FormatInt(transaction.Amount, 10), // преобразование числа в строку
+			strconv.Itoa(int(transaction.Amount)), // преобразование числа в строку
 			strconv.FormatInt(transaction.Created, 10),
 		}
 		records = append(records, record)
@@ -107,7 +107,7 @@ func (s *Service) ExportXML(filename string) error {
 		return nil
 	}
 
-	encoded, err := json.Marshal(s.transactions)
+	encoded, err := xml.Marshal(s.transactions)
 	if err != nil {
 		log.Println(err)
 	}
