@@ -65,7 +65,7 @@ func (s *Service) Export(writer io.Writer) error {
 		return nil
 	}
 
-	records := make([][]string, len(s.transactions))
+	records := make([][]string, 0, len(s.transactions))
 	for _, transaction := range s.transactions {
 		record := []string{
 			transaction.Id,
