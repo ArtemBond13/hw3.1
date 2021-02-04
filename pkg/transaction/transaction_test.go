@@ -23,7 +23,7 @@ func TestService_MapRowToTransaction(t *testing.T) {
 	}{
 		// TODO: Add test cases.
 		{"Ok", fields{mu: sync.Mutex{}, transactions: []*Transaction{}},
-			args{rows: []string{"","1", "0001", "0002", "1000_00", "1611473617"}},
+			args{rows: []string{"","1", "0001", "0002", "100000", "1611473617"}},
 			Transaction{"","1", "0001", "0002", 1000_00, 1611473617}, false},
 		{"Empty slice", fields{mu: sync.Mutex{}, transactions: []*Transaction{}},
 			args{rows: []string{"", "", "", "", "", ""}}, Transaction{}, true},
